@@ -1,6 +1,11 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import logo from "./logo.svg";
+import "./App.css";
+import fs from "fs";
+const path = require("path");
+
+const g = fs.existsSync(path.join(__dirname, "index.js"))
+console.log(g);
 
 function App() {
   return (
@@ -8,7 +13,7 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          Edit <code>src/App.js</code> and save to reload.
+          Edito <code>src/App.js</code> and save to reload.
         </p>
         <a
           className="App-link"

@@ -1,68 +1,140 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Electron
 
-## Available Scripts
+## Dev
 
-In the project directory, you can run:
+1. React codebase
 
-### `yarn start`
+   ```sh
+   $yarn create react-app .
+   ```
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+1. Electron deps
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+   - electron - allows us to use the electron framework.
+   - electron-builder - allows us to build the electron app to executable.
+   - wait-on - lets u wait on react to compile during development so as to render it with electron.
+   - concurrently - allows us to run both react and electron concurrently.
+   - electron-is-dev - tells electron the current environment we are working to decide either
+     serve the build or render the react app running on dev environment.
 
-### `yarn test`
+   ```sh
+   $yarn add electron electron-builder wait-on concurrently -D
+   $yarn add electron-is-dev
+   ```
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Start app
 
-### `yarn build`
+   - create public/electron.js
+   - the next script will wait until CRA compiles the react app then starts the electron app.
+     A new tab on browser wasn't opened, because of the environment(BROWSER=none).
+     Also point where the electron logic code lies
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+   ```json
+   "main": "public/electron.js"
+   "electron-dev": "concurrently \"BROWSER=none yarn start\" \"wait-on http://localhost:3000 && electron .\""
+   ```
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+   - start
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+   ```sh
+   $yarn electron-dev
+   ```
 
-### `yarn eject`
+1. FS issue
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+   - if you need to access the fs module, you'll quickly hit the Module not found error.
+     it can be solved with the use of electron-renderer as the Webpack target via lib called Rescripts
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+     ```sh
+     $yarn add @rescripts/cli @rescripts/rescript-env -D
+     ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+   - We will also have to change the script tags
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+   ```json
+    "start": "rescripts start",
+    "build": "rescripts build",
+    "test": "rescripts test"
+   ```
 
-## Learn More
+   - add the .rescriptsrc.js file in your root folder
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+   ```js
+   module.exports = [require.resolve("./.webpack.config.js")];
+   ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+   - add the .webpack.config.js file in your root folder
 
-### Code Splitting
+   ```js
+   module.exports = config => {
+     config.target = "electron-renderer";
+     return config;
+   };
+   ```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+## Packaging
 
-### Analyzing the Bundle Size
+1. Electron deps
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+   - electron-builder - to package the app with all of its dependencies.
+   - typescript - electron-builder is dependent on typescript (no need to use in code)
 
-### Making a Progressive Web App
+   ```sh
+   $yarn add electron-builder typescript -D
+   ```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+1. Need to configure:
 
-### Advanced Configuration
+   - the homepage route because when react builds it uses absolute paths,
+     and electron doesn't do absolute path.
+   - author
+   - build
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+   ```json
+   "homepage": "./",
+   "author": {
+       "name": "Your Name",
+       "email": "your.email@domain.com",
+       "url": "https://your-website.com"
+   },
+   "build": {
+       "appId": "com.my-website.my-app",
+       "productName": "MyApp",
+       "copyright": "Copyright © 2019 ${author}",
+       "mac": {
+           "category": "public.app-category.utilities"
+       },
+       "files": [
+           "build/**/*",
+           "node_modules/**/*"
+       ],
+       "directories": {
+           "buildResources": "assets"
+       }
+   }
+   ```
 
-### Deployment
+1. Icons
+   You will also want to create a directory called assets where you will add your app icons.
+   Check [Icons](https://www.electron.build/icons) to see the formats for these icons.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+1. Add the the following scripts
 
-### `yarn build` fails to minify
+   - postinstall - ensure that your dependencies always match the electron version
+   - preelectron-pack - will build the react app
+   - electron-pack - only generates the package dir without really packaging it.
+     This is useful for testing purposes.
+   - electron-dist - package in a distributable format (e.g. dmg, win installer, deb))
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+   ```json
+   "postinstall": "electron-builder install-app-deps",
+   "preelectron-pack": "yarn build",
+   "electron-pack": "electron-builder --dir",
+   "electron-dist": "electron-builder"
+   ```
+
+1. Package the app
+
+   ```sh
+   yarn electron-pack
+   ```
